@@ -4,13 +4,14 @@ from torch_geometric.data import Data
 import torch
 import numpy as np
 import time
+from copy import copy
 
 import argparse
 
 if __name__ == "__main__":
     num_eposides = 30000
-    n_step = 2
-    agent = Agent(epsilon=1, eps_decay=1e-4, T=2, cuda_id=2)
+    n_step = 5
+    agent = Agent(epsilon=1, eps_decay=1e-4, T=5, cuda_id=2)
     scores = [] # K是可变的，所以scores应该取相对分数
     
     t0 = time.time()
@@ -19,10 +20,10 @@ if __name__ == "__main__":
         graph_size = 500
         # seed_size = np.random.randint(5, 100) # K的取值为 5~100
         seed_size = 50
-        # p = np.random.randint(2,30)/graph_size # ER的平均度 为2~30
-        p = np.log(graph_size)/graph_size
-        # weight = 0.05 + np.random.rand()*0.15  # 连边权重为 0.05~0.2
-        weight = 0.1
+        p = np.random.randint(5,20)/graph_size # ER的平均度 为2~30
+        # p = np.log(graph_size)/graph_size
+        weight = 0.05 + np.random.rand()*0.15  # 连边权重为 0.05~0.2
+        # weight = 0.1
         Env = env(graph_size=graph_size, seed_size=seed_size, p=p, weight=weight) 
 
         mu, edge_index, edge_w, node_tag, done = Env.reset()
@@ -39,17 +40,17 @@ if __name__ == "__main__":
         steps_cntr = 0
 
         while not done:
-            graph_former_steps.append(graph)
+            graph_former_steps.append(copy(graph))
             # choose action
             action = agent.choose_action(graph)
-            action_steps.append(action)
+            action_steps.append(copy(action))
             # env step
             _, _, _, node_tag, done, reward = Env.step(action)
             # recording
             graph.node_tag = torch.Tensor(node_tag)
-            graph_later_steps.append(graph)
-            reward_steps.append(reward)
-            done_steps.append(done)
+            graph_later_steps.append(copy(graph))
+            reward_steps.append(copy(reward))
+            done_steps.append(copy(done))
 
             steps_cntr += 1
             if steps_cntr > n_step+1:
@@ -60,9 +61,9 @@ if __name__ == "__main__":
                                done_steps[-1])
             agent.learn()
             agent.save_Q_net("Q_net.model")
-            agent.save_score(scores, "score.npy")
         
         scores.append(Env.spread)
+        agent.save_score(scores, "score.npy")
 
         if i > 10 and i%20==0:
             print("Eposides = {:<6}, Scores = {:.2f} Time = {:.1f}s".format(i, 
