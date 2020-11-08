@@ -49,7 +49,7 @@ class env():
         else:
             print(self.network_model, " not implemented!")
 
-        self.simulator = IC(self.edge_index, self.edge_weight)
+        self.simulator = IC(self.edge_index, self.edge_weight.squeeze())
         self.x         = np.zeros((self.graph_size, 1), dtype=np.float32) # scaler value for nodes states
         self.spread    = 0
         self.done      = False
@@ -63,7 +63,9 @@ class env():
         self.x[action][0] = 1
 
         new_spread = self.simulator.run(self.x)
-        assert new_spread > self.spread
+        # assert new_spread > self.spread
+        if not new_spread > self.spread:
+            new_spread = self.spread
         reward     = new_spread - self.spread
         self.spread = new_spread
         self.done = self._done()
@@ -74,7 +76,7 @@ class env():
         r"""generate undirected edge_index and edge_weight"""
         G = nx.barabasi_albert_graph(n=n, m=m)
         edge_index = np.array(G.edges(), dtype=np.long).T
-        edge_weight= self.gen_edge_weight()
+        edge_weight= self.gen_edge_weight(G.number_of_edges())
 
         nx.set_edge_attributes(G, {edge:w for edge, w in zip(G.edges(), edge_weight)}, "weight")
         weight_degree = G.degree(weight="weight")
@@ -82,21 +84,21 @@ class env():
 
         # stack to undirected
         edge_index = np.hstack((edge_index, edge_index))
-        edge_weight = np.hstack((edge_weight, edge_weight))
+        edge_weight = np.vstack((edge_weight, edge_weight))
 
         return edge_index, edge_weight, weight_degree
 
     def _ER(self, n, p):
         pass
 
-    def gen_edge_weight(self):
+    def gen_edge_weight(self, num_edges):
         r"""generate constant edge weight or random normal edge weight"""
         if not self.random_edge_weight:
-            weight = np.array([self.edge_weight]*self.graph_size)
+            weight = np.array([self.edge_weight]*num_edges)
         else:
-            weight = np.random.normal(self.edge_weight, 0.05, size=self.graph_size)
+            weight = np.random.normal(self.edge_weight, 0.05, size=num_edges)
             weight[weight<0] = 0
-        return weight
+        return weight.reshape(-1, 1)
 
     def _done(self):
         if np.sum(self.x) >= self.seed_size:

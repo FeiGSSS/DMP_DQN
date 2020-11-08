@@ -3,6 +3,7 @@ Created : 2020/10/26
 Author  : Philip Gao
 Beijing Normal University
 """
+from copy import copy
 
 from Q_s2v import Q_s2v as Q
 from ReplayBuffer import replayBuffer
@@ -27,7 +28,7 @@ class Agent(nn.Module):
                  mem_size=1000, 
                  test=False,
                  replace_target = 50,
-                 cuda_id = 0):
+                 cuda_id = 5):
         super(Agent, self).__init__()        
         self.epsilon = epsilon
         self.gamma = gamma
@@ -48,6 +49,7 @@ class Agent(nn.Module):
         self.replace_target = replace_target
 
     def choose_action(self, graph):
+        graph = copy(graph)
         graph = graph.to(self.pre_Q.device)
 
         # make sure select new nodes

@@ -5,7 +5,7 @@ import pickle as pkl
 import time
 
 class IC():
-    def __init__(self, edge_list, edge_w, device="cpu", max_iter=10): 
+    def __init__(self, edge_list, edge_w, device="cpu", max_iter=20): 
         self.device = device
 
         self.src_nodes = T.LongTensor(edge_list[0]).to(device)
@@ -86,7 +86,7 @@ class IC():
             self.forward()
             new_inf = self.influence()
 
-            if abs(new_inf - self.inf_log[-1]) < 1.0:
+            if abs(new_inf - self.inf_log[-1]) < 0.1:
                 break
             else:
                 self.inf_log.append(new_inf)

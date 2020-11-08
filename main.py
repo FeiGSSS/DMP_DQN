@@ -26,10 +26,9 @@ if __name__ == "__main__":
         Env = env(graph_size=graph_size, seed_size=seed_size, edge_weight=0.1,
                   random_edge_weight=True, network_model="BA")
         edge_index, edge_weight, x, done = Env.reset()
-        graph = Data(edge_index = edge_index,
-                     edge_w = edge_weight,
-                     x = torch.Tensor(x),
-                     num_nodes = graph_size)
+        graph = Data(edge_index = torch.LongTensor(edge_index),
+                     edge_weight = torch.Tensor(edge_weight),
+                     x = torch.Tensor(x))
         # to be stored
         graph_former_steps = []
         graph_later_steps = []
@@ -62,7 +61,7 @@ if __name__ == "__main__":
             agent.learn()
             agent.save_Q_net("Q_net.model")
         
-        scores.append(Env.spread)
+        scores.append(Env.spread/seed_size)
         agent.save_score(scores, "score.npy")
 
         if i > 10 and i%20==0:
