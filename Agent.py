@@ -4,45 +4,44 @@ Author  : Philip Gao
 Beijing Normal University
 """
 
-from Q import Q_Fun
+from Q_s2v import Q_s2v as Q
 from ReplayBuffer import replayBuffer
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
 from torch_scatter import scatter_max
 import numpy as np
 import pickle as pkl
 
 class Agent(nn.Module):
     def __init__(self, 
-                 epsilon=1.0, # 随机选择的概率
-                 eps_decay = 1E-4, # 随机选择的概率的递减值
-                 gamma=1,
-                 batch_size=64, 
+                 epsilon=0.05, # 随机选择的概率
+                 gamma=1, #折现因子
+                 batch_size=128,  
                  lr=0.0001,
                  lr_gamma=0.999,
-                 in_dim=3, 
-                 hid_dim=64, 
+                 p_dim=64, 
                  T=5,
-                 mem_size=10000, 
+                 mem_size=1000, 
                  test=False,
-                 replace_target = 100,
+                 replace_target = 50,
                  cuda_id = 0):
         super(Agent, self).__init__()        
         self.epsilon = epsilon
-        self.eps_decay = eps_decay
         self.gamma = gamma
         self.batch_size = batch_size
         self.lr = lr
         self.lr_gamma = lr_gamma
-        self.in_dim = in_dim
-        self.hid_dim = hid_dim
+        self.p_dim = p_dim
         self.T = T
         self.mem_size = mem_size
         self.test = test
 
-        self.pre_Q = Q_Fun(in_dim, hid_dim, T, lr, lr_gamma, cuda_id)
-        self.target_Q = Q_Fun(in_dim, hid_dim, T, lr, lr_gamma, cuda_id)
+        self.pre_Q = Q(p_dim, T, lr, lr_gamma, cuda_id)
+        self.target_Q = Q(p_dim, T, lr, lr_gamma, cuda_id)
+
         self.memory = replayBuffer(mem_size)
 
         self.learn_step_cntr = 0
@@ -50,24 +49,21 @@ class Agent(nn.Module):
 
     def choose_action(self, graph):
         graph = graph.to(self.pre_Q.device)
-        r"""Input a graph , and output a new selected node """
-        graph = graph.to(self.pre_Q.device)
-        Q_value = self.pre_Q(graph)
 
         # make sure select new nodes
         if np.random.rand() < self.epsilon and not self.test:
             # random selecte 
-            self.epsilon = max(0.05, self.epsilon - self.eps_decay)
             while True:
                 action = np.random.choice(graph.num_nodes, size=1)
-                if graph.node_tag[int(action)] == 0:
+                if graph.x[int(action)] == 0:
                     break
         else:
+            Q_value = self.pre_Q(graph)
             _, q_action = torch.sort(Q_value, descending=True)
             for action in q_action:
-                if graph.node_tag[action] == 0:
+                if graph.x[action] == 0:
                     break
-        assert graph.node_tag[int(action)].item() == 0
+        assert graph.x[int(action)] == 0
         return int(action.item())
     
     def remember(self, *args):
@@ -88,30 +84,33 @@ class Agent(nn.Module):
         done            = done.to(self.pre_Q.device)
 
         self.pre_Q.optimizer.zero_grad()
-        
-        y_target = rewards + self.gamma * (1-done) * self._max_Q(graphs_later)
-        y_pred   = self.pre_Q(graphs_former)[self._idx(actions, int(graphs_former.num_nodes/self.batch_size))]
-        loss     = torch.mean(torch.pow(y_target-y_pred, 2))
+
+        # y_target = rewards + self.gamma * (1-done) * self._max_Q(graphs_later)
+        y_target = rewards + self._max_Q(graphs_later)
+        y_pred   = self.pre_Q(graphs_former)[self._adjust_actions(actions, graphs_former)]
+
+        loss     = F.mse_loss(y_target, y_pred)
         loss.backward()
+        
         self.pre_Q.optimizer.step()
         self.pre_Q.scheduler.step()
         self.learn_step_cntr += 1
 
 
 
-    def _max_Q(self, graphs):
-        batch = graphs.batch
-        Q_value = self.target_Q(graphs)
-        return scatter_max(Q_value, batch)[0]
+    def _max_Q(self, graph_batch):
+        Q_value = self.target_Q(graph_batch)
+        return scatter_max(Q_value, graph_batch.batch)[0]
 
-    def _idx(self, actions, num_nodes):
+    def _adjust_actions(self, actions, batch):
         """
         adjust actions to batch
         """
         adjust_actions = []
+        data_lens = [data.num_nodes for data in batch.to_data_list()]
         for i in range(self.batch_size):
             # TODO: change code for variaitional graph size
-            adjust_actions.append(actions[i] + num_nodes*i)
+            adjust_actions.append(actions[i] + sum(data_lens[:i]))
         return adjust_actions
 
     def save_Q_net(self, path):
