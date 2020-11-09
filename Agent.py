@@ -18,14 +18,14 @@ import pickle as pkl
 
 class Agent(nn.Module):
     def __init__(self, 
-                 epsilon=0.05, # 随机选择的概率
+                 epsilon=0.1, # 随机选择的概率
                  gamma=1, #折现因子
                  batch_size=128,  
                  lr=0.0001,
                  lr_gamma=0.999,
                  p_dim=64, 
                  T=5,
-                 mem_size=1000, 
+                 mem_size=5000, 
                  test=False,
                  replace_target = 50,
                  cuda_id = 5):

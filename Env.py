@@ -50,6 +50,7 @@ class env():
             print(self.network_model, " not implemented!")
 
         self.simulator = IC(self.edge_index, self.edge_weight.squeeze())
+        # self.simulator = simulation
         self.x         = np.zeros((self.graph_size, 1), dtype=np.float32) # scaler value for nodes states
         self.spread    = 0
         self.done      = False
@@ -61,10 +62,8 @@ class env():
         assert action in range(self.graph_size)
         assert self.x[action][0] == 0
         self.x[action][0] = 1
-
         new_spread = self.simulator.run(self.x)
-        # assert new_spread > self.spread
-        if not new_spread > self.spread:
+        if not  (new_spread - self.spread) > 0:
             new_spread = self.spread
         reward     = new_spread - self.spread
         self.spread = new_spread
@@ -75,6 +74,13 @@ class env():
     def _BA(self, n, m):
         r"""generate undirected edge_index and edge_weight"""
         G = nx.barabasi_albert_graph(n=n, m=m)
+        G = nx.classes.function.to_directed(G)
+        for node in G.nodes():
+            if G.in_degree(node) == 0:
+                if node-1 in G.nodes:
+                    G.add_node((node-1, node))
+                elif node+1 in G.nodes:
+                    G.add_node((node+1, node))
         edge_index = np.array(G.edges(), dtype=np.long).T
         edge_weight= self.gen_edge_weight(G.number_of_edges())
 
@@ -83,8 +89,8 @@ class env():
         weight_degree = list(dict(weight_degree).values())
 
         # stack to undirected
-        edge_index = np.hstack((edge_index, edge_index))
-        edge_weight = np.vstack((edge_weight, edge_weight))
+        # edge_index = np.hstack((edge_index, edge_index))
+        # edge_weight = np.vstack((edge_weight, edge_weight))
 
         return edge_index, edge_weight, weight_degree
 

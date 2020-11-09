@@ -22,7 +22,9 @@ if __name__ == "__main__":
     for i in range(num_eposides):
         # 设定Env
         graph_size = np.random.randint(50, 100)
-        seed_size = np.random.randint(10, 30)
+        # seed_size = np.random.randint(10, 30)
+        # graph_size = 100
+        seed_size = 10
         Env = env(graph_size=graph_size, seed_size=seed_size, edge_weight=0.1,
                   random_edge_weight=True, network_model="BA")
         edge_index, edge_weight, x, done = Env.reset()
@@ -59,14 +61,10 @@ if __name__ == "__main__":
                                sum(reward_steps[-n_step:]), 
                                done_steps[-1])
             agent.learn()
-            agent.save_Q_net("Q_net.model")
-        
         scores.append(Env.spread/seed_size)
+        agent.save_Q_net("Q_net.model")
         agent.save_score(scores, "score.npy")
 
-        if i > 10 and i%20==0:
-            print("Eposides = {:<6}, Scores = {:.2f} Time = {:.1f}s".format(i, 
-                                                    np.mean(scores[-5:]),
-                                                    time.time()-t0))
+        if i >10 and i % 10 == 0:
+            print("Eposides = {:<6}, Scores = {:.2f} Time = {:.1f}s".format(i, np.mean(scores[-1]),time.time()-t0))
             t0 = time.time()
-        

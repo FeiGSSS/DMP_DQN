@@ -86,7 +86,7 @@ class IC():
             self.forward()
             new_inf = self.influence()
 
-            if abs(new_inf - self.inf_log[-1]) < 0.1:
+            if abs(new_inf - self.inf_log[-1]) < 0.01:
                 break
             else:
                 self.inf_log.append(new_inf)
