@@ -60,6 +60,8 @@ class Q_s2v(nn.Module):
         self.theta7 = nn.Linear(p_dim, p_dim, bias=False)
         self.s2vs = nn.ModuleList([s2v(p_dim) for i in range(T)])
 
+        self.compress = nn.Linear(2*p_dim, p_dim, bias=False)
+
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
         self.scheduler = ExponentialLR(self.optimizer, gamma=lr_gamma)
         self.device = torch.device("cuda:{}".format(cuda_id) if torch.cuda.is_available() else "cpu")
@@ -72,7 +74,13 @@ class Q_s2v(nn.Module):
         mu = batch.mu if hasattr(batch, "mu") else torch.zeros((x.shape[0], self.p_dim)).to(self.device)
 
         for sub_model in self.s2vs:
-            mu = sub_model(x, mu, weight, edge_index)
+            # aggregation from in degree neighbors
+            mu_in_degree = sub_model(x, mu, weight, edge_index)
+            # aggregation from out degree neighbors
+            mu_out_degree= sub_model(x, mu, weight, edge_index[torch.LongTensor([1, 0])])
+
+            mu = F.relu(self.compress(torch.cat((mu_in_degree, mu_out_degree), dim=1)))
+
         pool = self.pool_repeat(mu, batch)
         cat = F.relu(torch.cat((pool, self.theta7(mu)), dim=1))
 
@@ -92,7 +100,3 @@ class Q_s2v(nn.Module):
             pool_repeat = pool.repeat(batch.num_nodes, 1)
 
         return pool_repeat
-        
-
-
-

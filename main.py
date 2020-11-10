@@ -62,8 +62,8 @@ if __name__ == "__main__":
                                done_steps[-1])
             agent.learn()
         scores.append(Env.spread/seed_size)
-        agent.save_Q_net("Q_net.model")
-        agent.save_score(scores, "score.npy")
+        agent.save_Q_net("checkpoints/Q_net.model")
+        agent.save_score(scores, "results/score.npy")
 
         if i >10 and i % 10 == 0:
             print("Eposides = {:<6}, Scores = {:.2f} Time = {:.1f}s".format(i, np.mean(scores[-1]),time.time()-t0))
