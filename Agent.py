@@ -99,7 +99,6 @@ class Agent(nn.Module):
         self.learn_step_cntr += 1
 
 
-
     def _max_Q(self, graph_batch):
         Q_value = self.target_Q(graph_batch)
         return scatter_max(Q_value, graph_batch.batch)[0]
