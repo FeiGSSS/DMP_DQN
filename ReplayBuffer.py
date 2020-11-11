@@ -11,7 +11,7 @@ class replayBuffer():
         self.graphs_former= [None] * mem_size
         self.graphs_later = [None] * mem_size
         self.actions = [None] * mem_size
-        self.rewards = [None] * mem_size
+        self.rewards = [0] * mem_size
         self.done    = [None] * mem_size
 
     def store(self, graph_former, graph_later, action, reward, done):
@@ -26,7 +26,8 @@ class replayBuffer():
 
     def sample(self, batch_size):
         max_mem = min(self.mem_cntr, self.mem_size)
-        batch = np.random.choice(max_mem, batch_size, replace=False)
+        p = np.array(self.rewards)/np.sum(self.rewards)
+        batch = np.random.choice(self.mem_size, batch_size, replace=False, p=p)
         graphs_former_batch   = Batch.from_data_list([self.graphs_former[b] for b in batch])
         graphs_later_batch = Batch.from_data_list([self.graphs_later[b] for b in batch])
         actions_batch      = torch.Tensor([self.actions[b] for b in batch])
