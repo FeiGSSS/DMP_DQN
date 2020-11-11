@@ -18,7 +18,8 @@ import pickle as pkl
 
 class Agent(nn.Module):
     def __init__(self, 
-                 epsilon=0.1, # 随机选择的概率
+                 epsilon=1, # 随机选择的初始概率
+                 epsilon_decay=1E-4, # 随机选择的概率decay
                  gamma=1, #折现因子
                  batch_size=128,  
                  lr=0.0001,
@@ -31,6 +32,7 @@ class Agent(nn.Module):
                  cuda_id = 5):
         super(Agent, self).__init__()        
         self.epsilon = epsilon
+        self.epsilon_decay = epsilon_decay
         self.gamma = gamma
         self.batch_size = batch_size
         self.lr = lr
@@ -54,6 +56,7 @@ class Agent(nn.Module):
 
         # make sure select new nodes
         if np.random.rand() < self.epsilon and not self.test:
+            self.epsilon = max(0.1, self.epsilon-self.epsilon_decay)
             # random selecte 
             while True:
                 action = np.random.choice(graph.num_nodes, size=1)

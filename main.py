@@ -15,18 +15,18 @@ if __name__ == "__main__":
     t0 = time.time()
 
     
-    agent = Agent()
+    agent = Agent(cuda_id=5)
     scores = [] 
     
     
     for i in range(num_eposides):
         # 设定Env
-        graph_size = np.random.randint(50, 100)
+        # graph_size = np.random.randint(50, 100)
         # seed_size = np.random.randint(10, 30)
-        # graph_size = 100
+        graph_size = 50
         seed_size = 10
         Env = env(graph_size=graph_size, seed_size=seed_size, edge_weight=0.1,
-                  random_edge_weight=True, network_model="BA")
+                  random_edge_weight=False, network_model="BA")
         edge_index, edge_weight, x, done = Env.reset()
         graph = Data(edge_index = torch.LongTensor(edge_index),
                      edge_weight = torch.Tensor(edge_weight),
