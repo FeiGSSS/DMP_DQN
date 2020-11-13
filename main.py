@@ -11,13 +11,16 @@ import argparse
 
 if __name__ == "__main__":
     num_eposides = 300000
-    n_step = 3
+    n_step = 1
     t0 = time.time()
 
     
-    agent = Agent(cuda_id=5,
+    agent = Agent(cuda_id=3,
                   epsilon=1, # 随机选择的初始概率
-                  epsilon_decay=1E-7, # 随机选择的概率decay
+                  epsilon_decay=1E-5, # 随机选择的概率decay
+                  batch_size=256,
+                  lr=0.01,
+                  T=3,
                   mem_size=50000)
     scores = [] 
     
@@ -64,7 +67,7 @@ if __name__ == "__main__":
                                action_steps[-n_step],
                                sum(reward_steps[-n_step:]), 
                                done_steps[-1])
-        agent.learn()
+            agent.learn()
         scores.append(Env.spread)
         agent.save_Q_net("checkpoints/Q_net.model")
         agent.save_score(scores, "results/score.npy")

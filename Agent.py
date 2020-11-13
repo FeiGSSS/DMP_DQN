@@ -75,7 +75,7 @@ class Agent(nn.Module):
         self.memory.store(*args)
 
     def learn(self):
-        if self.memory.mem_cntr < self.mem_size-10:
+        if self.memory.mem_cntr < 1000:
             return
         # Replacing target Q net
         if self.learn_step_cntr % self.replace_target == 1:
