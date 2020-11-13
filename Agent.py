@@ -26,9 +26,9 @@ class Agent(nn.Module):
                  lr_gamma=0.999,
                  p_dim=64, 
                  T=5,
-                 mem_size=5000, 
+                 mem_size=50000, 
                  test=False,
-                 replace_target = 50,
+                 replace_target = 500,
                  cuda_id = 5):
         super(Agent, self).__init__()        
         self.epsilon = epsilon
@@ -56,7 +56,7 @@ class Agent(nn.Module):
 
         # make sure select new nodes
         if np.random.rand() < self.epsilon and not self.test:
-            self.epsilon = max(0.1, self.epsilon-self.epsilon_decay)
+            self.epsilon = max(0.3, self.epsilon-self.epsilon_decay)
             # random selecte 
             while True:
                 action = np.random.choice(graph.num_nodes, size=1)
@@ -75,7 +75,7 @@ class Agent(nn.Module):
         self.memory.store(*args)
 
     def learn(self):
-        if self.memory.mem_cntr < self.batch_size:
+        if self.memory.mem_cntr < self.mem_size-10:
             return
         # Replacing target Q net
         if self.learn_step_cntr % self.replace_target == 1:
@@ -113,7 +113,6 @@ class Agent(nn.Module):
         adjust_actions = []
         data_lens = [data.num_nodes for data in batch.to_data_list()]
         for i in range(self.batch_size):
-            # TODO: change code for variaitional graph size
             adjust_actions.append(actions[i] + sum(data_lens[:i]))
         return adjust_actions
 

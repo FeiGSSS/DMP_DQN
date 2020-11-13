@@ -34,6 +34,12 @@ class s2v(nn.Module):
         self.theta3 = nn.Linear(p_dim, p_dim, bias=False)
         self.theta4 = nn.Linear(1, p_dim, bias=False)
 
+        self.cat_parts = nn.Sequential(
+                            nn.Linear(3*p_dim, p_dim, bias=False),
+                            nn.ReLU(),
+                            nn.Linear(p_dim, p_dim, bias=False))
+
+
     def forward(self, x, mu, weight, edge_index):
         """
         x: binary scaler for each node
@@ -45,7 +51,11 @@ class s2v(nn.Module):
         weight= F.relu(self.theta4(weight))
         part3 = self.theta3(scatter_add(weight, edge_index[1], dim=0))
 
-        mu_update = F.relu(part1+part2+part3)
+        # mu_update = F.relu(part1+part2+part3)
+        # part1的部分是节点状态的高维表示，和其他两部分是否具有简单的可加性？
+        # 下面尝试的是把各个部分cat在一起
+        cat_parts = self.cat_parts(torch.cat((part1, part2, part3), dim=1))
+        mu_update = F.relu(cat_parts)
 
         return mu_update
 
@@ -84,7 +94,7 @@ class Q_s2v(nn.Module):
         pool = self.pool_repeat(mu, batch)
         cat = F.relu(torch.cat((pool, self.theta7(mu)), dim=1))
 
-        return self.theta5(cat).squeeze()
+        return F.relu(self.theta5(cat).squeeze())
 
     def pool_repeat(self, mu, batch):
         if isinstance(batch, tg.data.Batch):

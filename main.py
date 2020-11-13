@@ -10,14 +10,15 @@ from copy import copy
 import argparse
 
 if __name__ == "__main__":
-    num_eposides = 30000
-    n_step = 5
+    num_eposides = 300000
+    n_step = 3
     t0 = time.time()
 
     
     agent = Agent(cuda_id=5,
                   epsilon=1, # 随机选择的初始概率
-                  epsilon_decay=1E-4) # 随机选择的概率decay
+                  epsilon_decay=1E-7, # 随机选择的概率decay
+                  mem_size=50000)
     scores = [] 
     
     
@@ -25,13 +26,14 @@ if __name__ == "__main__":
         # 设定Env
         # graph_size = np.random.randint(50, 100)
         # seed_size = np.random.randint(10, 30)
-        graph_size = 50
-        seed_size = 10
+        graph_size = 100
+        seed_size = 25
         Env = env(graph_size=graph_size, seed_size=seed_size, edge_weight=0.1,
                   random_edge_weight=False, network_model="BA")
-        edge_index, edge_weight, x, done = Env.reset()
+        edge_index, edge_weight, x, mu, done = Env.reset()
         graph = Data(edge_index = torch.LongTensor(edge_index),
                      edge_weight = torch.Tensor(edge_weight),
+                     mu = torch.Tensor(mu),
                      x = torch.Tensor(x))
         # to be stored
         graph_former_steps = []
@@ -62,8 +64,8 @@ if __name__ == "__main__":
                                action_steps[-n_step],
                                sum(reward_steps[-n_step:]), 
                                done_steps[-1])
-            agent.learn()
-        scores.append(Env.spread/seed_size)
+        agent.learn()
+        scores.append(Env.spread)
         agent.save_Q_net("checkpoints/Q_net.model")
         agent.save_score(scores, "results/score.npy")
 

@@ -43,9 +43,9 @@ class env():
     def reset(self):
         # 
         if self.network_model == "BA":
-            self.edge_index, self.edge_weight, self.weight_degree = self._BA(self.graph_size, m=4) 
+            self.edge_index, self.edge_weight, self.in_weight_degree, self.out_weight_degree = self._BA(self.graph_size, m=4) 
         elif self.network_model == "ER":
-            self.edge_index, self.edge_weight, self.weight_degree = self._BA(self.graph_size, m=3) 
+            exit()
         else:
             print(self.network_model, " not implemented!")
 
@@ -54,8 +54,11 @@ class env():
         self.x         = np.zeros((self.graph_size, 1), dtype=np.float32) # scaler value for nodes states
         self.spread    = 0
         self.done      = False
+        self.mu        = np.zeros((self.graph_size, 64), dtype=np.float32)   
+        self.mu[:,0] = self.in_weight_degree
+        self.mu[:,1] = self.out_weight_degree
 
-        return self.edge_index, self.edge_weight, self.x, self.done
+        return self.edge_index, self.edge_weight, self.x, self.mu, self.done
 
     def step(self, action):
         action = int(action)
@@ -84,15 +87,13 @@ class env():
         edge_index = np.array(G.edges(), dtype=np.long).T
         edge_weight= self.gen_edge_weight(G.number_of_edges())
 
-        nx.set_edge_attributes(G, {edge:w for edge, w in zip(G.edges(), edge_weight)}, "weight")
-        weight_degree = G.degree(weight="weight")
-        weight_degree = list(dict(weight_degree).values())
+        nx.set_edge_attributes(G, {edge:w for edge, w in zip(G.edges(), edge_weight.squeeze())}, "weight")
+        in_weight_degree = G.in_degree(weight="weight")
+        out_weight_degree = G.out_degree(weight="weight")
+        in_weight_degree = list(dict(in_weight_degree).values())
+        out_weight_degree = list(dict(out_weight_degree).values())
 
-        # stack to undirected
-        # edge_index = np.hstack((edge_index, edge_index))
-        # edge_weight = np.vstack((edge_weight, edge_weight))
-
-        return edge_index, edge_weight, weight_degree
+        return edge_index, edge_weight, in_weight_degree, out_weight_degree
 
     def _ER(self, n, p):
         pass
