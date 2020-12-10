@@ -15,7 +15,7 @@ if __name__ == "__main__":
     t0 = time.time()
 
     
-    agent = Agent(cuda_id=3,
+    agent = Agent(cuda_id=0,
                   epsilon=1, # 随机选择的初始概率
                   epsilon_decay=1E-5, # 随机选择的概率decay
                   batch_size=256,

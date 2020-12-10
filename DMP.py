@@ -1,13 +1,12 @@
 import networkx as nx
 import torch as T
-from torch_scatter import scatter_mul, scatter_add
 import pickle as pkl
 import time
 
 class IC():
-    def __init__(self, edge_list, edge_w, device="cpu", max_iter=20): 
+    def __init__(self, num_nodes, edge_list, edge_w, device="cpu", max_iter=20): 
         self.device = device
-
+        self.num_nodes = num_nodes
         self.src_nodes = T.LongTensor(edge_list[0]).to(device)
         self.tar_nodes = T.LongTensor(edge_list[1]).to(device)
         self.weights   = T.FloatTensor(edge_w).to(device)
@@ -15,7 +14,8 @@ class IC():
         
         self.N = max([T.max(self.src_nodes), T.max(self.tar_nodes)]).item()+1
         self.E = len(self.src_nodes)
-        self.out_weight_d = scatter_add(self.weights, self.src_nodes).to(device)
+        #self.out_weight_d = scatter_add(self.weights, self.src_nodes).to(device)
+        self.out_weight_d = T.zeros(num_nodes).scatter_(0, self.src_nodes, self.weights, reduce="add").to(device) 
 
         self.max_iter = max_iter
 
@@ -50,9 +50,9 @@ class IC():
 
 
     def mulmul(self, Theta_t):
-        Theta = scatter_mul(Theta_t, index=self.tar_nodes) # [N]
+        Theta = T.ones(self.num_nodes).scatter_(0, self.tar_nodes, Theta_t, reduce="multiply") # [N]
         Theta = Theta[self.src_nodes] #[E]
-        Theta_cav = scatter_mul(Theta_t, index=self.cave_index)[:self.E]
+        Theta_cav = T.ones(self.E).scatter_(0, self.cave_index, Theta_t, reduce="multiply")[:self.E]
 
         mul = Theta / Theta_cav
         return mul
@@ -67,11 +67,12 @@ class IC():
     
     def influence(self):
         # Ps_i : the probability of node i being S 
-        self.Ps_i = self.Ps_i_0 * scatter_mul(self.Theta_t, index=self.tar_nodes)
+        self.Ps_i = self.Ps_i_0 * T.ones(self.num_nodes).scatter_(0, self.tar_nodes, self.Theta_t, reduce="multiply")
         return T.sum(1-self.Ps_i)
         
     def theta_aggr(self):
         theta = scatter_mul(self.Theta_t, index=self.tar_nodes)
+        theta = T.ones(self.num_nodes).scatter_(0, self.tar_nodes, self.Theta_t, reduce="multiply")
 
         return theta, self.Ps_i
 

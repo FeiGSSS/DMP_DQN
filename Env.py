@@ -49,7 +49,7 @@ class env():
         else:
             print(self.network_model, " not implemented!")
 
-        self.simulator = IC(self.edge_index, self.edge_weight.squeeze())
+        self.simulator = IC(self.graph_size, self.edge_index, self.edge_weight.squeeze())
         # self.simulator = simulation
         self.x         = np.zeros((self.graph_size, 1), dtype=np.float32) # scaler value for nodes states
         self.spread    = 0

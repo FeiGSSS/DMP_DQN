@@ -113,8 +113,8 @@ class Agent(nn.Module):
         adjust_actions = []
         data_lens = [data.num_nodes for data in batch.to_data_list()]
         for i in range(self.batch_size):
-            adjust_actions.append(actions[i] + sum(data_lens[:i]))
-        return adjust_actions
+            adjust_actions.append(int(actions[i] + sum(data_lens[:i])))
+        return torch.LongTensor(adjust_actions)
 
     def save_Q_net(self, path):
         torch.save(self.target_Q.state_dict(), path)
